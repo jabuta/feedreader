@@ -16,19 +16,26 @@ func main() {
 	}
 	var port = os.Getenv("PORT")
 
-	mainR := chi.NewRouter()
-	mainR.Use(cors.Handler(corsOptions))
+	router := chi.NewRouter()
+	router.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"https://*", "http://*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"*"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: false,
+		MaxAge:           300,
+	}))
 
-	v1R := chi.NewRouter()
+	v1router := chi.NewRouter()
 
-	v1R.Get("/readiness", v1OkHandler)
-	v1R.Get("/err", v1NotOkHandler)
+	v1router.Get("/readiness", v1OkHandler)
+	v1router.Get("/err", v1NotOkHandler)
 
-	mainR.Mount("/v1", v1R)
+	router.Mount("/v1", v1router)
 
 	srv := &http.Server{
 		Addr:    ":" + port,
-		Handler: mainR,
+		Handler: router,
 	}
 
 	log.Printf("Starting http server on port %s", port)
