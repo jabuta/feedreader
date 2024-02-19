@@ -3,12 +3,7 @@ package main
 import "net/http"
 
 func v1OkHandler(w http.ResponseWriter, r *http.Request) {
-	type OkResponse struct {
-		Status string `json:"status"`
-	}
-	respondWithJson(w, http.StatusOK, OkResponse{
-		Status: "ok",
-	})
+	respondWithJson(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
 func v1NotOkHandler(w http.ResponseWriter, r *http.Request) {

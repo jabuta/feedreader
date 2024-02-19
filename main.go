@@ -10,6 +10,14 @@ import (
 	"github.com/joho/godotenv"
 )
 
+import _ "github.com/lib/pq"
+
+
+type apiConfig struct {
+	DB *database.Queries
+}
+
+
 func main() {
 	if err := godotenv.Load(); err != nil {
 		panic(err)
