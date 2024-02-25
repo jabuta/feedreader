@@ -50,9 +50,13 @@ func main() {
 	v1router.Get("/readiness", v1OkHandler)
 	v1router.Get("/err", v1NotOkHandler)
 
-	//Define db endpoints
+	//Define Users endpoints
 	v1router.Post("/users", conf.createUser)
-	v1router.Get("/users", conf.getUser)
+	v1router.Get("/users", conf.middlewareAuth(conf.handlerUsersGet))
+
+	// define feeds endpoints
+	v1router.Post("/feeds", conf.middlewareAuth(conf.handlerFeedsPost))
+	v1router.Get("/feeds", conf.getFeeds)
 
 	router.Mount("/v1", v1router)
 

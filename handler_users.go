@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jabuta/feedreader/internal/auth"
 	"github.com/jabuta/feedreader/internal/database"
 )
 
@@ -33,16 +32,6 @@ func (cfg apiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 	respondWithJson(w, http.StatusOK, databaseUserToMainUser(user))
 }
 
-func (cfg apiConfig) getUser(w http.ResponseWriter, r *http.Request) {
-	apiKey, err := auth.GetHeaderAuth(r)
-	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, err.Error())
-		return
-	}
-	user, err := cfg.DB.GetUserByAPI(r.Context(), apiKey)
-	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, err.Error())
-		return
-	}
+func (cfg apiConfig) handlerUsersGet(w http.ResponseWriter, r *http.Request, user database.User) {
 	respondWithJson(w, http.StatusOK, databaseUserToMainUser(user))
 }
