@@ -52,6 +52,7 @@ func main() {
 
 	//Define db endpoints
 	v1router.Post("/users", conf.createUser)
+	v1router.Get("/users", conf.getUser)
 
 	router.Mount("/v1", v1router)
 
