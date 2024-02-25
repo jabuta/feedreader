@@ -1,7 +1,9 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/url"
 	"time"
@@ -10,18 +12,15 @@ import (
 	"github.com/jabuta/feedreader/internal/database"
 )
 
-func isValidURL(toTest string) bool {
-	parsedURL, err := url.ParseRequestURI(toTest)
-	if err != nil {
-		return false // Not a valid URL
-	}
-	return (parsedURL.Scheme == "http" || parsedURL.Scheme == "https") && parsedURL.Host != ""
-}
-
 func (cfg apiConfig) handlerFeedsPost(w http.ResponseWriter, r *http.Request, user database.User) {
 	type PostFeed struct {
 		Name string `json:"name"`
 		Url  string `json:"url"`
+	}
+
+	type createFeedResponse struct {
+		Feed       Feed       `json:"feed"`
+		FeedFollow FeedFollow `json:"feed_follow"`
 	}
 	var postFeed PostFeed
 
@@ -47,14 +46,35 @@ func (cfg apiConfig) handlerFeedsPost(w http.ResponseWriter, r *http.Request, us
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	respondWithJson(w, http.StatusOK, databaseFeedToMainFeed(createdFeed))
-}
-
-func (cfg apiConfig) getFeeds(w http.ResponseWriter, r *http.Request) {
-	dbFeeds, err := cfg.DB.GetFeeds(r.Context())
+	feedFollow, err := createFeedFollow(cfg.DB, r.Context(), createdFeed.ID, user.ID)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	respondWithJson(w, http.StatusOK, createFeedResponse{
+		Feed:       databaseFeedToMainFeed(createdFeed),
+		FeedFollow: databaseFeedFollowToMainFeedFollow(feedFollow),
+	})
+}
+
+func (cfg apiConfig) handlerFeedsGet(w http.ResponseWriter, r *http.Request) {
+	dbFeeds, err := cfg.DB.GetFeeds(r.Context())
+	if errors.Is(err, sql.ErrNoRows) {
+		respondWithError(w, http.StatusNotFound, "no feeds found")
+		return
+	} else if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	respondWithJson(w, http.StatusOK, databaseFeedsToMainFeeds(dbFeeds))
+}
+
+func isValidURL(toTest string) bool {
+	parsedURL, err := url.ParseRequestURI(toTest)
+	if err != nil {
+		return false // Not a valid URL
+	}
+	return (parsedURL.Scheme == "http" || parsedURL.Scheme == "https") && parsedURL.Host != ""
 }

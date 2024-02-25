@@ -53,3 +53,29 @@ func databaseFeedsToMainFeeds(dbFeeds []database.Feed) []Feed {
 	}
 	return feeds
 }
+
+type FeedFollow struct {
+	ID        uuid.UUID `json:"id"`
+	FeedID    uuid.UUID `json:"feed_id"`
+	UserID    uuid.UUID `json:"user_id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+func databaseFeedFollowToMainFeedFollow(dbFeedFollow database.FeedFollow) FeedFollow {
+	return FeedFollow{
+		ID:        dbFeedFollow.ID,
+		FeedID:    dbFeedFollow.FeedID,
+		UserID:    dbFeedFollow.UserID,
+		CreatedAt: dbFeedFollow.CreatedAt,
+		UpdatedAt: dbFeedFollow.UpdatedAt,
+	}
+}
+
+func databaseFeedFollowsToMainFeedFollows(dbFeeds []database.FeedFollow) []FeedFollow {
+	feeds := make([]FeedFollow, len(dbFeeds))
+	for i := range dbFeeds {
+		feeds[i] = databaseFeedFollowToMainFeedFollow(dbFeeds[i])
+	}
+	return feeds
+}

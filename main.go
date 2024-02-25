@@ -56,7 +56,12 @@ func main() {
 
 	// define feeds endpoints
 	v1router.Post("/feeds", conf.middlewareAuth(conf.handlerFeedsPost))
-	v1router.Get("/feeds", conf.getFeeds)
+	v1router.Get("/feeds", conf.handlerFeedsGet)
+
+	// define feed_follow endpoints
+	v1router.Post("/feed_follows", conf.middlewareAuth(conf.createFeedFollow))
+	v1router.Get("/feed_follows", conf.middlewareAuth(conf.getFeedFollowsUser))
+	v1router.Delete("/feed_follows/{feedFollowID}", conf.deleteFeedFollow)
 
 	router.Mount("/v1", v1router)
 
