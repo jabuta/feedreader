@@ -1,13 +1,11 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -22,25 +20,19 @@ func (cfg apiConfig) createFeedFollow(w http.ResponseWriter, r *http.Request, us
 	if err := json.NewDecoder(r.Body).Decode(&createFeedFollowRequest); err != nil {
 		respondWithError(w, http.StatusInternalServerError, "can't decode json")
 	}
-	createdFeedFollow, err := createFeedFollow(cfg.DB, r.Context(), createFeedFollowRequest.ID, user.ID)
+	createdFeedFollow, err := cfg.DB.CreateFeedFollow(r.Context(), database.CreateFeedFollowParams{
+		ID:     uuid.New(),
+		FeedID: createFeedFollowRequest.ID,
+		UserID: user.ID,
+	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	respondWithJson(w, http.StatusOK, databaseFeedFollowToMainFeedFollow(createdFeedFollow))
+	respondWithJson(w, http.StatusOK, databaseFeedFollowToFeedFollow(createdFeedFollow))
 }
 
-func createFeedFollow(db *database.Queries, ctx context.Context, feedId, userId uuid.UUID) (database.FeedFollow, error) {
-	return db.CreateFeedFollow(ctx, database.CreateFeedFollowParams{
-		ID:        uuid.New(),
-		FeedID:    feedId,
-		UserID:    userId,
-		CreatedAt: time.Now().UTC(),
-		UpdatedAt: time.Now().UTC(),
-	})
-}
-
-func (cfg apiConfig) deleteFeedFollow(w http.ResponseWriter, r *http.Request) {
+func (cfg apiConfig) deleteFeedFollow(w http.ResponseWriter, r *http.Request, user database.User) {
 	chi.URLParam(r, "feedFollowID")
 	log.Print(chi.URLParam(r, "feedFollowID"))
 	feedFollowID, err := uuid.Parse(chi.URLParam(r, "feedFollowID"))
@@ -48,7 +40,10 @@ func (cfg apiConfig) deleteFeedFollow(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	deletedFeedFollow, err := cfg.DB.DeleteFeedFollow(r.Context(), feedFollowID)
+	deletedFeedFollow, err := cfg.DB.DeleteFeedFollow(r.Context(), database.DeleteFeedFollowParams{
+		ID:     feedFollowID,
+		UserID: user.ID,
+	})
 	if errors.Is(err, sql.ErrNoRows) {
 		respondWithError(w, http.StatusBadRequest, err.Error())
 		return
@@ -56,7 +51,7 @@ func (cfg apiConfig) deleteFeedFollow(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	respondWithJson(w, http.StatusOK, databaseFeedFollowToMainFeedFollow(deletedFeedFollow))
+	respondWithJson(w, http.StatusOK, databaseFeedFollowToFeedFollow(deletedFeedFollow))
 }
 
 func (cfg apiConfig) getFeedFollowsUser(w http.ResponseWriter, r *http.Request, user database.User) {
@@ -66,5 +61,5 @@ func (cfg apiConfig) getFeedFollowsUser(w http.ResponseWriter, r *http.Request, 
 	} else if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 	}
-	respondWithJson(w, http.StatusOK, databaseFeedFollowsToMainFeedFollows(feedFollows))
+	respondWithJson(w, http.StatusOK, databaseFeedFollowsToFeedFollows(feedFollows))
 }

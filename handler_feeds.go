@@ -6,7 +6,6 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/jabuta/feedreader/internal/database"
@@ -35,26 +34,28 @@ func (cfg apiConfig) handlerFeedsPost(w http.ResponseWriter, r *http.Request, us
 	}
 
 	createdFeed, err := cfg.DB.CreateFeed(r.Context(), database.CreateFeedParams{
-		ID:        uuid.New(),
-		CreatedAt: time.Now().UTC(),
-		UpdatedAt: time.Now().UTC(),
-		Name:      postFeed.Name,
-		Url:       postFeed.Url,
-		UserID:    user.ID,
+		ID:     uuid.New(),
+		Name:   postFeed.Name,
+		Url:    postFeed.Url,
+		UserID: user.ID,
 	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	feedFollow, err := createFeedFollow(cfg.DB, r.Context(), createdFeed.ID, user.ID)
+	feedFollow, err := cfg.DB.CreateFeedFollow(r.Context(), database.CreateFeedFollowParams{
+		ID:     uuid.New(),
+		FeedID: createdFeed.ID,
+		UserID: user.ID,
+	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	respondWithJson(w, http.StatusOK, createFeedResponse{
-		Feed:       databaseFeedToMainFeed(createdFeed),
-		FeedFollow: databaseFeedFollowToMainFeedFollow(feedFollow),
+		Feed:       databaseFeedToFeed(createdFeed),
+		FeedFollow: databaseFeedFollowToFeedFollow(feedFollow),
 	})
 }
 
@@ -68,7 +69,7 @@ func (cfg apiConfig) handlerFeedsGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondWithJson(w, http.StatusOK, databaseFeedsToMainFeeds(dbFeeds))
+	respondWithJson(w, http.StatusOK, databaseFeedsToFeeds(dbFeeds))
 }
 
 func isValidURL(toTest string) bool {

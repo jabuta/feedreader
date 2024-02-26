@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"net/http"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/jabuta/feedreader/internal/database"
@@ -19,19 +18,17 @@ func (cfg apiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	createUserArgs := database.CreateUserParams{
-		ID:        uuid.New(),
-		CreatedAt: time.Now().UTC(),
-		UpdatedAt: time.Now().UTC(),
-		Name:      reqBody.Name,
+		ID:   uuid.New(),
+		Name: reqBody.Name,
 	}
 	user, err := cfg.DB.CreateUser(r.Context(), createUserArgs)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	respondWithJson(w, http.StatusOK, databaseUserToMainUser(user))
+	respondWithJson(w, http.StatusOK, databaseUserToUser(user))
 }
 
 func (cfg apiConfig) handlerUsersGet(w http.ResponseWriter, r *http.Request, user database.User) {
-	respondWithJson(w, http.StatusOK, databaseUserToMainUser(user))
+	respondWithJson(w, http.StatusOK, databaseUserToUser(user))
 }

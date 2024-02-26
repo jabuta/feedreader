@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
@@ -15,7 +17,9 @@ import (
 )
 
 type apiConfig struct {
-	DB *database.Queries
+	DB             *database.Queries
+	fetchSleep     time.Duration
+	numFeeds2fetch int32
 }
 
 func main() {
@@ -32,6 +36,8 @@ func main() {
 		panic(err)
 	} else {
 		conf.DB = database.New(db)
+		conf.fetchSleep = 10 * time.Second
+		conf.numFeeds2fetch = 2
 	}
 
 	router := chi.NewRouter()
@@ -61,9 +67,11 @@ func main() {
 	// define feed_follow endpoints
 	v1router.Post("/feed_follows", conf.middlewareAuth(conf.createFeedFollow))
 	v1router.Get("/feed_follows", conf.middlewareAuth(conf.getFeedFollowsUser))
-	v1router.Delete("/feed_follows/{feedFollowID}", conf.deleteFeedFollow)
+	v1router.Delete("/feed_follows/{feedFollowID}", conf.middlewareAuth(conf.deleteFeedFollow))
 
 	router.Mount("/v1", v1router)
+
+	go conf.fetchFeeds(context.Background())
 
 	srv := &http.Server{
 		Addr:    ":" + port,
