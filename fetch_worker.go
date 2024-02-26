@@ -8,6 +8,7 @@ import (
 
 	"github.com/jabuta/feedreader/internal/database"
 	"github.com/jabuta/feedreader/internal/fetchxml"
+	"github.com/lib/pq"
 )
 
 func (cfg apiConfig) fetchFeeds(ctx context.Context) {
@@ -30,8 +31,16 @@ func (cfg apiConfig) fetchFeeds(ctx context.Context) {
 					return
 				}
 				cfg.DB.MarkFeedFetched(ctx, feed.ID)
-				for i, item := range rss.Channel.Items {
-					log.Printf(`Feed: %s - Item #: %v, Title: %s`, rss.Channel.Title, i, item.Title)
+				for _, item := range rss.Channel.Items {
+					createdPost, err := cfg.DB.CreatePost(ctx, xmlPostToDatabaseCreatePostParams(item, feed.ID))
+					if err != nil {
+						if pqErr, ok := err.(*pq.Error); !(ok && pqErr.Code == "23505") {
+							log.Println(err)
+						} else {
+							continue
+						}
+					}
+					log.Println(createdPost)
 				}
 			}(feed2fetch, wg)
 		}
